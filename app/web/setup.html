@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MyPetFinder はじめの設定</title>
+<style>
+:root{--bg:#f6f5f1;--fg:#222;--muted:#6b6b66;--card:#fff;--line:#e2e0d8;--accent:#2f6f5e}
+@media (prefers-color-scheme:dark){:root{--bg:#161614;--fg:#eceae3;--muted:#9a9a93;--card:#1f1f1c;--line:#34342f;--accent:#6fbfa8}}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.7 "Yu Gothic UI","Meiryo",system-ui,sans-serif}
+main{max-width:720px;margin:0 auto;padding:28px 16px}
+h1{font-size:20px}button{font:inherit;padding:10px 18px;border:0;border-radius:10px;background:var(--accent);color:#fff;cursor:pointer}
+button.ghost{background:transparent;color:var(--fg);border:1px solid var(--line);padding:4px 12px;font-size:13px}
+textarea{width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--fg)}
+.note{color:var(--muted);font-size:13px}.err{color:#b03a2e}
+</style></head><body><main>
+<h1>MyPetFinder へようこそ</h1>
+<p>ペットや家族の写真・動画を、名前や場面で探せるアプリです。写真は、このパソコンの外には出ません（インターネットには送りません）。元の写真・動画は変更しません。</p>
+<p><b>写真・動画のあるフォルダ</b>を教えてください（1行に1つ。フルパスで）。</p>
+<div id="sug" class="note"></div>
+<textarea id="f" rows="5" placeholder="例:&#10;D:\写真&#10;E:\ビデオ"></textarea>
+<p><button id="go">これで始める</button> <span id="msg" class="err"></span></p>
+<p class="note">あとからフォルダを足したいときは、config\settings.toml の [[scan]] を増やしてください。</p>
+<script>
+const $=s=>document.querySelector(s);
+fetch("/api/setup/suggest").then(r=>r.json()).then(j=>{if(!j.folders.length)return;$("#sug").innerHTML="候補（押すと追加）: "+j.folders.map(f=>`<button class="ghost">${f.replace(/&/g,"&amp;").replace(/</g,"&lt;")}</button>`).join(" ");
+  $("#sug").querySelectorAll("button").forEach(b=>b.onclick=()=>{const t=$("#f");t.value=(t.value.trim()?t.value.trim()+"\n":"")+b.textContent})});
+$("#go").onclick=async()=>{$("#msg").textContent="";const folders=$("#f").value.split("\n").map(x=>x.trim()).filter(Boolean);
+  const r=await fetch("/api/setup/save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({folders})});const j=await r.json();
+  if(j.error){$("#msg").textContent=j.error;return}
+  document.body.innerHTML='<main><h1>設定しました</h1><p>この画面は閉じて、黒い画面（コンソール）で表示された検索画面のアドレスを開いてください。自動で開かない場合は、数秒待ってから <a href="/">こちら</a> を押してください。</p></main>';
+  setTimeout(()=>location.href="/",3000)}
+</script></main></body></html>

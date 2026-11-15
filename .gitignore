@@ -1,0 +1,9 @@
+# 個人データ・大きなファイルは、リポジトリに入れない
+data/
+models/
+python/
+config/
+*.zip
+*.db
+*.db-*
+__pycache__/
