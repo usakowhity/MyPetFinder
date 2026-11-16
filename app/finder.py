@@ -48,6 +48,8 @@ def check_folders(folders) -> list[str]:
         p = Path(f)
         if not p.is_absolute():
             raise ValueError(f"フルパスで指定してください（例: D:\\写真）: {f}")
+        if p.parent == p:
+            raise ValueError(f"ドライブ全体（{f}）は指定できません。時間がかかり、ペットと無関係なファイルも含まれます。写真・動画のあるフォルダを指定してください（例: D:\\Photos\\Pet）: {f}")
         if not p.is_dir():
             raise ValueError(f"フォルダが見つかりません: {f}")
         out.append(str(p))
@@ -78,8 +80,6 @@ def suggest_folders() -> list[str]:
     """よくある保存先の候補（存在するものだけ）。"""
     home = Path(os.path.expanduser("~"))
     cands = [home / n for n in ("Pictures", "Videos", "Documents", "Desktop", "OneDrive/Pictures", "OneDrive/画像", "画像", "ピクチャ", "ビデオ")]
-    for d in "DEFGH":
-        cands.append(Path(f"{d}:\\"))
     return [str(c) for c in cands if c.is_dir()]
 
 
@@ -295,6 +295,10 @@ class Job:
                 if 1 in stages:
                     self.stage = STAGES[1]
                     embed.run(cfg, conn, log=say)
+                    from . import zeroshot
+
+                    say("文章検索用のモデルを確認します…")
+                    zeroshot.ensure_files(cfg.app_root / "models" / embed.MODEL_NAME, say)
                 if 2 in stages:
                     self.stage = STAGES[2]
                     dino.run(cfg, conn, log=say)

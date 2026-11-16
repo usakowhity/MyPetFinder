@@ -452,12 +452,17 @@ async function ptList(kind,more){
   const rv=kind==="rv";
   $("#ptBody").innerHTML=(rv?`<div class="note">「${esc(p.name)}」の見本を、他と似ていない順に並べます。違う子が混じっていたら選んで外す／付け直します。</div><div style="margin:4px 0"><label><input type="radio" name="ptk" value="human" ${PT.kind==="human"?"checked":""}> 名前を付けた写真</label> <label><input type="radio" name="ptk" value="ai" ${PT.kind==="ai"?"checked":""}> 自動で付いた写真</label></div>`:`<div class="note">「${esc(p.name)}」に似た、名前のない写真です（似ている順）。合うものを選んで「この子です」。</div>`)+
    `<div class="note">${PT.total.toLocaleString()} 枚　<span id="ptN"></span></div><div class="fgrid">${PT.items.map(ptTile).join("")}</div>
-   <div class="bar2">${rv?'<button id="ptRm">名前を外す</button> <select id="ptTo"></select> <button class="ghost" id="ptMv">この子に付け直す</button>':'<button id="ptAdd">選んだ写真をこの子にする</button> <button class="ghost" id="ptNeg">この子ではない</button>'} <button class="ghost" id="ptIg">使わない</button> <button class="ghost" id="ptMore">もっと見る</button></div>`;
+   <div class="bar2">${rv?'<button id="ptRm">名前を外す</button> <select id="ptTo"></select> <button class="ghost" id="ptMv">この子に付け直す</button>':'<button id="ptAdd">選んだ写真をこの子にする</button> <button class="ghost" id="ptNeg">この子ではない</button> <button id="ptRest" title="違う写真だけをクリックで選び、「この子ではない」「使わない」で除いてから、残りをまとめて付けます">表示中の残りを全部この子にする</button> <button class="ghost" id="ptAll">全部選ぶ</button> <button class="ghost" id="ptNone">選択を解除</button>'} <button class="ghost" id="ptIg">使わない</button> <button class="ghost" id="ptMore">もっと見る</button></div>`;
   ptBind($("#ptBody"));
   if(rv){$("#ptTo").innerHTML=PT.pets.filter(x=>x.id!==p.id).map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("");
     document.querySelectorAll("input[name=ptk]").forEach(r=>r.onchange=()=>{PT.kind=r.value;ptList("rv")});
     $("#ptRm").onclick=()=>ptAct("remove");$("#ptMv").onclick=()=>ptAct("move")}
-  else{$("#ptAdd").onclick=()=>ptAct("add");$("#ptNeg").onclick=()=>ptAct("neg")}
+  else{$("#ptAdd").onclick=()=>ptAct("add");$("#ptNeg").onclick=()=>ptAct("neg");
+    $("#ptAll").onclick=()=>{PT.items.forEach(i=>PT.sel.add(i.asset_id));document.querySelectorAll("#ptBody .fc").forEach(e=>e.classList.add("on"));ptCount()};
+    $("#ptNone").onclick=()=>{PT.sel=new Set();document.querySelectorAll("#ptBody .fc").forEach(e=>e.classList.remove("on"));ptCount()};
+    $("#ptRest").onclick=async()=>{const rest=PT.items.map(i=>i.asset_id).filter(a=>!PT.sel.has(a));if(!rest.length)return alert("付ける写真がありません");
+      if(!confirm(`表示中の ${PT.items.length} 枚のうち、選んでいない ${rest.length} 枚を「${p.name}」にします。\n（選んだ ${PT.sel.size} 枚は、そのまま残ります）`))return;
+      await ptDo("/api/pet/label",{asset_ids:rest,pet_id:p.id,mode:"add"});await ptLoad(p.id);ptList(PT.mode)}}
   $("#ptIg").onclick=()=>ptAct("ignore");$("#ptMore").onclick=()=>ptList(kind,true);
   if(more)ptCount();
 }

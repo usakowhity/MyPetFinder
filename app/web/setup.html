@@ -15,8 +15,9 @@ textarea{width:100%;font:inherit;padding:10px;border:1px solid var(--line);borde
 <p>ペットや家族の写真・動画を、名前や場面で探せるアプリです。写真は、このパソコンの外には出ません（インターネットには送りません）。元の写真・動画は変更しません。</p>
 <p><b>写真・動画のあるフォルダ</b>を教えてください（1行に1つ。フルパスで）。</p>
 <div id="sug" class="note"></div>
-<textarea id="f" rows="5" placeholder="例:&#10;D:\写真&#10;E:\ビデオ"></textarea>
+<textarea id="f" rows="5" placeholder="例:&#10;D:\Photos\Pet&#10;D:\Videos\Pet"></textarea>
 <p><button id="go">これで始める</button> <span id="msg" class="err"></span></p>
+<p class="note">ドライブ全体（D:\ など）は指定できません。ペットの写真・動画があるフォルダを選んでください（サブフォルダも含みます）。</p>
 <p class="note">あとからフォルダを足したいときは、config\settings.toml の [[scan]] を増やしてください。</p>
 <script>
 const $=s=>document.querySelector(s);

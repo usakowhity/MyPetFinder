@@ -22,11 +22,14 @@ SEASONS = {"春": [3, 4, 5], "夏": [6, 7, 8], "秋": [9, 10, 11], "冬": [12, 1
 # 場面の言葉 → 英語（CLIP は英語の文章で画像と比べるため）。順に探し、当たったものを文章にまとめる
 SCENE_WORDS = [
     ("仲良", "close together, friendly", "仲良く"), ("遊", "playing", "遊ぶ"), ("食べ", "eating", "食べる"), ("食事", "eating", "食事"), ("寝", "sleeping", "寝る"),
-    ("眠", "sleeping", "眠る"), ("走", "running", "走る"), ("跳", "jumping", "跳ぶ"), ("抱", "being held in arms", "抱っこ"),
+    ("眠", "sleeping", "眠る"), ("走", "running", "走る"), ("跳", "jumping", "跳ぶ"), ("抱っこ", "being held in arms", "抱っこ"), ("だっこ", "being held in arms", "抱っこ"), ("抱", "being held in arms", "抱っこ"),
     ("撫で", "being petted", "撫でる"), ("なで", "being petted", "撫でる"), ("散歩", "walking outdoors", "散歩"),
-    ("日向ぼっこ", "lying in the sun", "日向ぼっこ"), ("ケージ", "in a cage", "ケージ"), ("庭", "in a garden", "庭"), ("雪", "in snow", "雪"),
+    ("日向ぼっこ", "lying in the sun", "日向ぼっこ"), ("ケージ", "in a cage", "ケージ"), ("ゲージ", "in a cage", "ケージ"), ("ハウス", "in a small pet house", "ハウス"), ("庭", "in a garden", "庭"), ("雪", "in snow", "雪"),
     ("花", "with flowers", "花"), ("海", "at the sea", "海"), ("おもちゃ", "with a toy", "おもちゃ"), ("ご飯", "eating", "ご飯"),
     ("くつろ", "relaxing", "くつろぐ"), ("甘え", "cuddling", "甘える"), ("じゃれ", "playfully", "じゃれる"), ("見つめ", "looking at the camera", "見つめる"),
+    ("おやつ", "eating a treat", "おやつ"), ("喜", "looking happy and excited", "喜ぶ"), ("はしゃ", "excited and playful", "はしゃぐ"),
+    ("室内", "indoors, in a room", "室内"), ("部屋", "indoors, in a room", "部屋"), ("ベランダ", "on a balcony", "ベランダ"), ("芝生", "on a grass lawn", "芝生"), ("芝", "on a grass lawn", "芝生"),
+    ("公園", "in a park", "公園"), ("お風呂", "in a bathtub", "お風呂"), ("おふろ", "in a bathtub", "お風呂"), ("玄関", "at the entrance of a house", "玄関"),
 ]
 STOP = ["様子", "写した", "撮った", "写って", "写る", "している", "していた", "ている", "いる", "して", "たち", "達", "みんな", "一緒", "の", "を", "が", "は", "に", "で", "と", "も", "や", "から", "まで", "ます", "ました", "です"]
 _KANJI_NUM = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
@@ -297,6 +300,27 @@ def _where(parsed: dict, opts: dict):
     return " AND ".join(where), args
 
 
+_SPECIES_EN = (("rabbit", ("rabbit", "うさぎ", "ウサギ", "兎")), ("rat", ("rat", "ラット", "ネズミ", "ねずみ", "鼠")), ("dog", ("dog", "犬", "いぬ", "イヌ")),
+               ("cat", ("cat", "猫", "ねこ", "ネコ")), ("hamster", ("hamster", "ハムスター")), ("degu", ("degu", "デグー")),
+               ("guinea pig", ("guinea", "モルモット")), ("bird", ("bird", "鳥", "インコ", "文鳥")))
+
+
+def subject_for(species) -> str:
+    """文章検索の主語（"a pet rabbit" など）。種類が分からない・複数なら、"a pet"。空なら、これまでどおり rabbit。"""
+    found = set()
+    for sp in species or []:
+        t = (sp or "").strip().lower()
+        for en, words in _SPECIES_EN:
+            if any(w in t for w in words):
+                found.add(en)
+                break
+        else:
+            found.add("")
+    if not species:
+        return "a pet rabbit"
+    return f"a pet {found.pop()}" if len(found) == 1 and "" not in found else "a pet"
+
+
 def has_table(conn, name) -> bool:
     return conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)).fetchone() is not None
 
@@ -367,6 +391,7 @@ class Searcher:
         if prompt not in self._text:
             from . import embed, zeroshot
 
+            zeroshot.ensure_files(self.cfg.app_root / "models" / embed.MODEL_NAME)      # 文章モデルが無ければ、ここで取得する（あれば何もしない）
             self._text[prompt] = zeroshot.text_embeddings(self.cfg.app_root / "models" / embed.MODEL_NAME, [prompt])[0]
         return self._text[prompt]
 
@@ -393,7 +418,7 @@ class Searcher:
             total_c = len(ids)
             try:
                 pos, X = self._matrix()
-                subj = "a pet rabbit" if "rabbit" in parsed["species"] or not parsed["species"] else "a pet rat"
+                subj = subject_for(parsed["species"])
                 prompt = f"a photo of {subj}, " + ", ".join(scene["parts"])
                 t = self._text_vec(prompt)
                 have = [a for a in ids if a in pos]
@@ -412,7 +437,7 @@ class Searcher:
                 note = f"場面は近似です（条件に合う {total_c:,} 枚のうち、文章に近い上位 {total} 枚）。"
             except Exception as ex:
                 scene["status"] = "pending"
-                scene["detail"] = f"文章モデルの準備ができないため使いません（{type(ex).__name__}）。メニュー15を一度実行してください。"
+                scene["detail"] = f"文章モデルの準備ができないため使いません（{type(ex).__name__}）。個人用はメニュー15、公開版は「解析を始める」を、もう一度実行してください。"
                 note = scene["detail"]
                 usable2 = [c for c in conds if c["status"] == "used"]
                 if not usable2:
