@@ -486,6 +486,7 @@ class Searcher:
                     UNION SELECT f.asset_id, i.person_id, 'ai' FROM face_ai i JOIN faces f ON f.id=i.face_id WHERE f.asset_id IN ({qs})""", ids + ids):
             who.setdefault(r["asset_id"], {}).setdefault(r["person_id"], r["src"])
         wname = {r["id"]: r["display_name"] or r["id"] for r in self.conn.execute("SELECT id, display_name FROM persons")}
+        petname = {r["id"]: r["display_name"] or r["id"] for r in self.conn.execute("SELECT id, display_name FROM pets")}
         nonlive = {r["asset_id"]: r["kind"] for r in self.conn.execute(f"SELECT asset_id, kind FROM asset_nonlive WHERE asset_id IN ({qs})", ids)}
         out = []
         for a in ids:
@@ -493,7 +494,7 @@ class Searcher:
             if not i:
                 continue
             out.append({"id": a, "kind": i["kind"], "date": _fmt_date(i["date_taken"], i["date_precision"]), "path": paths.get(a, ""),
-                        "pets": sorted(pets.get(a, [])), "places": [{"name": pname.get(k, k), "src": v} for k, v in places.get(a, {}).items()] + [{"name": tname.get(k, k), "src": v} for k, v in tags.get(a, {}).items()],
+                        "pets": sorted(petname.get(k, k) for k in pets.get(a, [])), "places": [{"name": pname.get(k, k), "src": v} for k, v in places.get(a, {}).items()] + [{"name": tname.get(k, k), "src": v} for k, v in tags.get(a, {}).items()],
                         "persons": [{"name": wname.get(k, k), "src": v} for k, v in who.get(a, {}).items()], "nonlive": nonlive.get(a), "duration": i["duration_sec"],
                         "sim": round(sim[a], 3) if a in sim else None})
         return out

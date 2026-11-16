@@ -181,7 +181,46 @@ class App:
             return {"model": embed.pet_model(self.conn), "pets": petlearn.pet_list(self.conn), "warnings": finder.load_warnings(self.conn),
                     "ignored": self.conn.execute("SELECT COUNT(*) FROM pet_ignore").fetchone()[0]}
 
+    @staticmethod
+    def split_aliases(aliases):
+        """別の呼び名: 「、」「,」「;」「/」「・」空白のどれで区切ってもよい。リストでも文字列でも受ける。"""
+        if isinstance(aliases, str):
+            aliases = [aliases]
+        out = []
+        for a in aliases or []:
+            out += [x for x in re.split(r"[,、，;；/／・\s]+", str(a)) if x]
+        return list(dict.fromkeys(out))
+
+    def pet_alias(self, pid, aliases):
+        """既存のペットの別の呼び名を、置き換える（pets.toml も書き換える）。"""
+        from .textnorm import norm
+
+        bad = '"\\\n\r'
+        als = [a for a in self.split_aliases(aliases) if len(a) <= 40 and not any(ch in a for ch in bad)][:20]
+        with self.lock:
+            self._pet_ok(pid)
+            name = self.conn.execute("SELECT display_name FROM pets WHERE id=?", (pid,)).fetchone()[0] or pid
+            full = [name] + [a for a in als if a != name]
+            path = self.cfg.config_dir / "pets.toml"
+            txt = path.read_text(encoding="utf-8") if path.exists() else ""
+            blocks = re.split(r"(?m)^(?=\[\[pet\]\])", txt)
+            line = "aliases = [" + ", ".join('"' + a + '"' for a in full) + "]"
+            done = False
+            for i, b in enumerate(blocks):
+                if b.startswith("[[pet]]") and re.search(r'(?m)^id\s*=\s*"' + re.escape(pid) + '"', b):
+                    b = re.sub(r"(?m)^aliases\s*=.*$", line, b) if re.search(r"(?m)^aliases\s*=", b) else b.rstrip("\n") + "\n" + line + "\n"
+                    blocks[i], done = b, True
+            if not done:                                        # 台帳に無い（個人用の台帳に書いていない）ときは、追記する
+                blocks.append(f'\n[[pet]]\nid = "{pid}"\ndisplay_name = "{name}"\n{line}\n')
+            path.write_text("".join(blocks), encoding="utf-8", newline="\n")
+            self.conn.execute("DELETE FROM pet_aliases WHERE pet_id=?", (pid,))
+            for a in full:
+                self.conn.execute("INSERT OR IGNORE INTO pet_aliases(pet_id,alias,alias_norm) VALUES(?,?,?)", (pid, a, norm(a)))
+            self.conn.commit()
+        return {"aliases": als}
+
     def pet_add(self, name, species, aliases, start, end):
+        aliases = self.split_aliases(aliases)
         name = (name or "").strip()
         bad = '"\\\n\r'
         if not name or len(name) > 40 or any(ch in name for ch in bad):
@@ -631,6 +670,8 @@ def make_handler(app: App, port_holder: dict):
                     return self._json(app.face_label(body.get("face_ids", []), body.get("person_id", ""), body.get("mode", "add")))
                 if path == "/api/finder/analyze":
                     return self._json(app.finder_analyze())
+                if path == "/api/pet/alias":
+                    return self._json(app.pet_alias(body.get("pet_id", ""), body.get("aliases", [])))
                 if path == "/api/pet/add":
                     return self._json(app.pet_add(body.get("name", ""), body.get("species", ""), body.get("aliases"), body.get("start"), body.get("end")))
                 if path == "/api/pet/label":

@@ -218,5 +218,10 @@ def pet_list(conn):
     auto = {r[0]: r[1] for r in conn.execute(
         """SELECT fp.pet_id, COUNT(DISTINCT f.asset_id) FROM file_pets fp JOIN files f ON f.id=fp.file_id
            WHERE fp.origin='ai' AND f.status='present' AND f.asset_id IS NOT NULL GROUP BY fp.pet_id""")}
-    return [{"id": r["id"], "name": r["display_name"] or r["id"], "species": r["species"] or "", "labelled": lab.get(r["id"], 0), "auto": auto.get(r["id"], 0)}
+    al = defaultdict(list)
+    for r in conn.execute("SELECT pet_id, alias FROM pet_aliases ORDER BY rowid"):
+        if r["alias"] != r["pet_id"]:                        # 内部ID（p_...）は、利用者に見せない
+            al[r["pet_id"]].append(r["alias"])
+    return [{"id": r["id"], "name": r["display_name"] or r["id"], "species": r["species"] or "", "labelled": lab.get(r["id"], 0), "auto": auto.get(r["id"], 0),
+             "aliases": al.get(r["id"], [])}
             for r in conn.execute("SELECT id, display_name, species FROM pets WHERE active=1 ORDER BY display_name")]

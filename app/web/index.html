@@ -112,7 +112,7 @@ dialog::backdrop{background:#000b}
       <div class="panel" id="petPanel">
         <b>ペットに名前を付ける</b> <span id="pInfo" class="note"></span><br>
         ペット: <select id="ptSel" style="font:inherit;padding:4px 8px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--fg)"></select>
-        <button class="ghost" id="ptNew">＋ 新しいペット</button>
+        <button class="ghost" id="ptNew">＋ 新しいペット</button> <button class="ghost" id="ptAlias" title="選んだペットの、別の呼び方（ニックネーム）を変えます">呼び名を編集</button>
         <button class="ghost" id="ptTabCl">グループで付ける</button> <button class="ghost" id="ptTabSim">似た写真を探す</button> <button class="ghost" id="ptTabRv">名前を見直す</button>
         <button class="ghost" id="ptId" title="付けた名前を見本にして、残りの写真を判定し直します（メニュー11と同じ）">判定をやり直す</button> <span id="ptJob" class="note"></span>
         <div id="ptBody"></div>
@@ -391,7 +391,7 @@ $("#fSel").onchange=()=>{if(fp.mode==="sim")showSim();else if(fp.mode==="rv")sho
 (async()=>{
   try{
     const f=await api("/api/facets");
-    $("#fpets").innerHTML=f.pets.map(p=>`<button data-w="${esc(p.id)}">${esc(p.name)} <small>${p.n.toLocaleString()}</small></button>`).join("");
+    $("#fpets").innerHTML=f.pets.map(p=>`<button data-w="${esc(p.name)}">${esc(p.name)} <small>${p.n.toLocaleString()}</small></button>`).join("");
     $("#fyears").innerHTML=f.years.map(y=>`<button data-w="${y.year}年">${y.year}</button>`).join("");
     const kb=[];if(f.kinds.image)kb.push(`<button data-w="写真">写真 <small>${f.kinds.image.toLocaleString()}</small></button>`);
     if(f.kinds.video)kb.push(`<button data-w="動画">動画 <small>${f.kinds.video.toLocaleString()}</small></button>`);
@@ -479,10 +479,14 @@ $("#ptTabRv").onclick=()=>{PT.mode="rv";ptList("rv").catch(e=>alert(e.message))}
 $("#ptSel").onchange=()=>{if(PT.mode==="sim"||PT.mode==="rv")ptList(PT.mode)};
 $("#ptNew").onclick=async()=>{const name=prompt("ペットの名前（例: ポチ）");if(!name)return;
   const sp=prompt("種類（例: rabbit / rat / dog / cat）。空でもよい","")||"";
-  const al=(prompt("別の呼び方（「,」区切り。空でもよい）","")||"").split(",").map(x=>x.trim()).filter(Boolean);
+  const al=(prompt("別の呼び方（「、」や「,」で区切る。空でもよい。例: ポチくん、ぽっちゃん）","")||"").split(/[,、，;；\/／・\s]+/).map(x=>x.trim()).filter(Boolean);
   const st=prompt("飼い始め（例 2015 または 2015-04-01。空でもよい）。同じ見た目の子を見分ける手掛かりになります","")||"";
   const en=prompt("お別れの日（空でもよい）","")||"";
   const r=await ptDo("/api/pet/add",{name,species:sp,aliases:al,start:st,end:en});if(r){await ptLoad(r.id)}};
+$("#ptAlias").onclick=async()=>{const p=ptCur();if(!p)return alert("ペットを選んでください");
+  const cur=(p.aliases||[]).filter(a=>a!==p.name).join("、");
+  const v=prompt(`「${p.name}」の別の呼び方（「、」や「,」で区切る。空にすると、なし）\n検索ボックスに、この呼び方を入れても、${p.name} が見つかります。`,cur);if(v===null)return;
+  const r=await ptDo("/api/pet/alias",{pet_id:p.id,aliases:v.split(/[,、，;；\/／・\s]+/).filter(Boolean)});if(r){await ptLoad(p.id);alert("保存しました: "+(r.aliases.join("、")||"（なし）"))}};
 $("#ptId").onclick=async()=>{if(!confirm("付けた名前を見本にして、残りの写真のペットを判定し直します。時間がかかります（バックグラウンドで実行）。"))return;
   const r=await ptDo("/api/pet/identify",{});if(!r)return;
   const t=setInterval(async()=>{const j=await api("/api/pet/job");$("#ptJob").textContent=j.running?"判定中… "+(j.log&&j.log.length?j.log[j.log.length-1]:""):(j.error?"エラー: "+j.error:"判定が終わりました");if(!j.running){clearInterval(t);ptLoad(ptCur()&&ptCur().id)}},3000)};
