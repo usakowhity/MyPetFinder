@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MyPetFinder ペットの写真・動画を、名前と場面で探す</title>
+<meta name="description" content="パソコンに保存したペットの写真・動画を、名前や場面で探せる Windows 用アプリ。写真はパソコンの外に出ません。無料・MITライセンス。">
+<meta property="og:title" content="MyPetFinder">
+<meta property="og:description" content="ペットの写真・動画を、名前と場面で探す。写真はパソコンの外に出ません。">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=BIZ+UDPGothic:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#f7f6f2;      /* 白うさぎ */
+  --ink:#171918;        /* 黒うさぎ */
+  --ink-2:#2a2d2b;
+  --muted:#5d625f;
+  --muted-on-ink:#a9afab;
+  --line:#dcdad2;
+  --leaf:#2f6f5e;       /* アプリの緑 */
+  --leaf-on-ink:#7cc4ad;
+  --maxw:1080px;
+  --head:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Yu Gothic UI","Meiryo",sans-serif;
+  --body:"BIZ UDPGothic","Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.85 var(--body);-webkit-text-size-adjust:100%}
+a{color:var(--leaf);text-underline-offset:.2em}
+a:focus-visible,.btn:focus-visible{outline:3px solid var(--leaf);outline-offset:3px}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px}
+h1,h2,h3{font-family:var(--head);line-height:1.35;margin:0}
+p{margin:0 0 1em}
+
+/* 上: 白うさぎの面 */
+.hero{padding:56px 0 72px}
+.name{font:700 17px/1 var(--head);letter-spacing:.04em;margin-bottom:56px;display:flex;align-items:center;gap:10px}
+.name i{width:14px;height:14px;border-radius:50%;background:var(--ink);box-shadow:10px 0 0 -1px var(--paper),10px 0 0 0 var(--ink);display:inline-block;margin-right:10px}
+.hero-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:48px;align-items:center}
+.hero h1{font-size:clamp(34px,5.2vw,58px);font-weight:900;letter-spacing:.01em}
+.hero .lead{font-size:19px;color:var(--ink-2);margin:24px 0 32px;max-width:30em}
+.btns{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.btn{display:inline-block;font:700 17px/1 var(--head);padding:16px 26px;border-radius:999px;background:var(--ink);color:var(--paper);text-decoration:none;border:2px solid var(--ink)}
+.btn:hover{background:var(--leaf);border-color:var(--leaf)}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.ghost:hover{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.facts{margin:20px 0 0;color:var(--muted);font-size:15px}
+.shot{margin:0}
+.shot img{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--line);box-shadow:0 18px 40px -22px rgba(23,25,24,.45)}
+.shot figcaption{font-size:14px;color:var(--muted);margin-top:10px}
+
+/* 下: 黒うさぎの面 */
+.dark{background:var(--ink);color:#f1f1ee}
+.dark a{color:var(--leaf-on-ink)}
+.dark .muted{color:var(--muted-on-ink)}
+section{padding:80px 0}
+h2{font-size:clamp(26px,3.4vw,36px);font-weight:900;margin-bottom:28px}
+.lede{max-width:34em;color:var(--ink-2)}
+.dark .lede{color:#dcdcd8}
+
+.steps{list-style:none;margin:40px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;counter-reset:s}
+.steps li{counter-increment:s;padding:0 22px 0 0;position:relative}
+.steps li::before{content:counter(s);display:block;font:900 44px/1 var(--head);color:var(--leaf-on-ink);margin-bottom:14px}
+.steps h3{font-size:19px;margin-bottom:8px}
+.steps p{font-size:15.5px;color:var(--muted-on-ink);margin:0}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:36px;border-radius:18px;overflow:hidden;border:1px solid var(--ink)}
+.two > div{padding:36px 34px}
+.two .can{background:#fff}
+.two .cant{background:var(--ink);color:#f1f1ee}
+.two h3{font-size:21px;margin-bottom:16px}
+.two ul{margin:0;padding-left:1.2em}
+.two li{margin-bottom:.7em}
+.two .cant li::marker{color:var(--muted-on-ink)}
+
+.two-img{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:40px}
+
+.privacy{font:700 clamp(22px,3vw,30px)/1.6 var(--head);max-width:26em}
+.priv-list{margin:28px 0 0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.priv-list li{border-top:2px solid var(--leaf-on-ink);padding-top:14px;font-size:15.5px;color:#dcdcd8}
+
+table{border-collapse:collapse;width:100%;margin-top:24px;font-size:16px}
+th,td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{width:9em;font-family:var(--head);font-weight:700;white-space:nowrap}
+
+footer{padding:40px 0 56px;font-size:14.5px;color:var(--muted)}
+footer .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;justify-content:space-between}
+footer p{margin:0}
+
+@media (max-width:860px){
+  .hero{padding:32px 0 48px}.name{margin-bottom:32px}
+  .hero-grid{grid-template-columns:1fr;gap:32px}
+  .steps{grid-template-columns:1fr 1fr;gap:32px 0}
+  .two,.two-img,.priv-list{grid-template-columns:1fr}
+  section{padding:56px 0}
+  th{white-space:normal;width:7em}
+}
+@media (max-width:480px){.steps{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="name"><i aria-hidden="true"></i>MyPetFinder</div>
+    <div class="hero-grid">
+      <div>
+        <h1>ペットの写真は、名前と場面で探せる。</h1>
+        <p class="lead">何万枚もの写真と動画の中から、「ベランダのうさちゃん」のように、呼び名と場面を入れるだけ。写真は、あなたのパソコンの中だけで扱います。</p>
+        <div class="btns">
+          <a class="btn" href="https://github.com/usakowhity/MyPetFinder/releases/latest">Windows 版をダウンロード</a>
+          <a class="btn ghost" href="https://github.com/usakowhity/MyPetFinder">ソースコード（GitHub）</a>
+        </div>
+        <p class="facts">無料・MIT ライセンス・Windows 10 / 11（64ビット）</p>
+      </div>
+      <figure class="shot">
+        <img src="search-veranda.png" width="1107" height="913" alt="「ベランダのうさちゃん」で検索した結果。白いうさぎが、ベランダで写った写真が並ぶ">
+        <figcaption>「ベランダのうさちゃん」の検索結果。「うさちゃん」は、登録した別の呼び名です。</figcaption>
+      </figure>
+    </div>
+  </div>
+</header>
+
+<main>
+<section class="dark" id="howto">
+  <div class="wrap">
+    <h2>はじめるまで、4つの手順</h2>
+    <p class="lede">専門的な設定はありません。写真のあるフォルダを教えて、あとは名前を付けるだけです。</p>
+    <ol class="steps">
+      <li><h3>フォルダを選ぶ</h3><p>写真・動画のあるフォルダを入力します。元の写真・動画は、変更しません。</p></li>
+      <li><h3>解析を待つ</h3><p>ワンボタンで始まります。途中で閉じても、次回は続きから再開します。</p></li>
+      <li><h3>ペットに名前を付ける</h3><p>似た写真のグループが出ます。同じ子のグループを選んで名前を付けます。全部に付ける必要はありません。</p></li>
+      <li><h3>名前と場面で探す</h3><p>「室内のクロちゃん」「芝生で遊ぶ」など、普通の言葉で検索できます。</p></li>
+    </ol>
+  </div>
+</section>
+
+<section id="scope">
+  <div class="wrap">
+    <h2>できること、できないこと</h2>
+    <p class="lede">得意なことと苦手なことを、先にお伝えします。</p>
+    <div class="two">
+      <div class="can">
+        <h3>できること</h3>
+        <ul>
+          <li>ウサギ・犬・猫・ネズミなど、種類の違うペットを、名前で見分けて探す</li>
+          <li>同じ種類でも、毛色や顔つきが違う子を、別々に登録する</li>
+          <li>別の呼び名（ニックネーム）でも、同じ子として検索する</li>
+          <li>動画も、写っているペットで探す</li>
+          <li>「抱っこ」「散歩」「ケージ」など、場面や場所の言葉で絞り込む</li>
+          <li>気に入った結果を、別のフォルダに、アルバムとして書き出す</li>
+        </ul>
+      </div>
+      <div class="cant">
+        <h3>できないこと</h3>
+        <ul>
+          <li>同じ種類で、見た目がそっくりな子の見分け（白いラット2匹など）。取り違えやすい組は、警告を出します</li>
+          <li>場面の検索を、確実に当てること。文章に近い写真を並べる近似なので、外れることがあります</li>
+          <li>人物の顔の判別（この版には、含みません）</li>
+          <li>スマートフォンやクラウドの写真の取り込み</li>
+        </ul>
+      </div>
+    </div>
+    <div class="two-img">
+      <figure class="shot">
+        <img src="search-indoor.png" width="1107" height="915" loading="lazy" alt="「室内のクロちゃん」で検索した結果。黒いうさぎが、部屋やケージの中で写った写真が並ぶ">
+        <figcaption>「室内のクロちゃん」。名前と場面を、続けて入れられます。</figcaption>
+      </figure>
+      <div>
+        <h3 style="font-size:21px;margin-bottom:14px">見分けは、毛色や顔つきの違いが頼り</h3>
+        <p>黒いうさぎと白いうさぎのように、見た目がはっきり違う子は、少しの名前付けで、残りの写真も、自動で見分けます。</p>
+        <p>見た目がほとんど同じ子どうしは、人でも写真だけでは区別できません。そのときは、警告を出して、あなたの判断に任せます。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="dark" id="privacy">
+  <div class="wrap">
+    <h2>写真は、パソコンの外に出ません</h2>
+    <p class="privacy">解析も、検索も、すべてあなたのパソコンの中で行います。アカウント登録は、ありません。</p>
+    <ul class="priv-list">
+      <li>インターネットを使うのは、初回に、Python・部品・AIモデルを取得するときだけです。</li>
+      <li>検索画面は、このパソコンの中（127.0.0.1）でしか開けません。</li>
+      <li>元の写真・動画は、読むだけです。変更も削除もしません。</li>
+    </ul>
+  </div>
+</section>
+
+<section id="spec">
+  <div class="wrap">
+    <h2>動作環境とお願い</h2>
+    <table>
+      <tr><th>対応</th><td>Windows 10 / 11（64ビット）</td></tr>
+      <tr><th>空き容量</th><td>約3GB以上（部品とモデルで約1GB。解析結果は、写真の枚数に応じて増えます）</td></tr>
+      <tr><th>はじめ方</th><td>zip を展開して、<code>start_finder.bat</code> をダブルクリック。初回は、必要な部品を自動で取得します（数分、インターネットが必要）</td></tr>
+      <tr><th>時間</th><td>パソコンのCPUだけで動かすため、枚数が多いと時間がかかります。まず少ないフォルダで試してください。</td></tr>
+      <tr><th>お願い</th><td>個人の趣味のプロジェクトで、試作版です。動作は保証できません。大切な写真は、バックアップを取ってからお使いください。問い合わせの窓口は設けていません。</td></tr>
+    </table>
+    <div class="btns" style="margin-top:32px">
+      <a class="btn" href="https://github.com/usakowhity/MyPetFinder/releases/latest">最新版をダウンロード</a>
+      <a class="btn ghost" href="https://github.com/usakowhity/MyPetFinder#readme">README を読む</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>MyPetFinder は、MIT ライセンスのオープンソースです。使っている部品のライセンスは、<a href="https://github.com/usakowhity/MyPetFinder/blob/main/THIRD_PARTY_NOTICES.md">一覧</a>にあります。</p>
+    <p>制作: <a href="https://github.com/usakowhity">usakowhity</a>（AI の Claude の支援を受けて作成）</p>
+  </div>
+</footer>
+
+</body>
+</html>
