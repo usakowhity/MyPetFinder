@@ -66,6 +66,7 @@ dialog::backdrop{background:#000b}
 .cl .h{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px}
 #facePanel button{padding:5px 12px;font-size:13px}
 .pl{background:var(--accent);color:#fff}.pl.ai{background:var(--approx)}
+.note.err{color:#b3261e;font-weight:700}
 </style>
 </head>
 <body>
@@ -195,16 +196,17 @@ function add(word){const q=$("#q");q.value=(q.value+" "+word).trim();search(q.va
 try{$("#albDest").value=localStorage.getItem("albDest")||""}catch(e){}
 $("#albBtn").onclick=()=>{const on=!$("#albPanel").classList.contains("on");$("#albPanel").classList.toggle("on",on);if(on&&!$("#albName").value)$("#albName").value=(query||"アルバム").replace(/[<>:"\/\\|?*]/g,"_").slice(0,40)};
 let albT=null;
+function albErr(m){const e=$("#albMsg");e.textContent=m;e.classList.add("err")}
 async function albPoll(){
   try{
     const j=await api("/api/album/status");
     if(j.idle)return;
     if(j.running){$("#albMsg").textContent=`書き出し中… ${j.n.toLocaleString()} / ${j.total.toLocaleString()}`;$("#albCancel").style.display="";albT=setTimeout(albPoll,700);return}
     $("#albCancel").style.display="none";$("#albGo").disabled=false;
-    if(j.error){$("#albMsg").textContent="失敗: "+j.error;return}
+    if(j.error){albErr("失敗: "+j.error);return}
     const r=j.result;const gb=r.bytes/1073741824;
     $("#albMsg").textContent=`完了: ${r.done.toLocaleString()} 件を書き出しました（${gb>=1?gb.toFixed(1)+" GB":(r.bytes/1048576).toFixed(0)+" MB"}${r.linked?`、うちリンク ${r.linked} 件`:""}）。`+(r.missing?` 元のファイルが見つからないもの ${r.missing} 件（外付けドライブが接続されているか、確認してください）。`:"")+(r.n_failed?` 失敗 ${r.n_failed} 件（一覧のCSVに記録）。`:"")+` 場所: ${r.dir}`;
-  }catch(e){$("#albMsg").textContent=e.message}
+  }catch(e){albErr(e.message)}
 }
 $("#albGo").onclick=async()=>{
   const dest=$("#albDest").value.trim(), name=$("#albName").value.trim();
@@ -214,12 +216,12 @@ $("#albGo").onclick=async()=>{
   if(!dest||!name){alert("書き出し先とアルバムの名前を入れてください");return}
   if(!confirm(`${n.toLocaleString()} 件を、${dest} の下の「${name}」に書き出します。よいですか？`))return;
   try{localStorage.setItem("albDest",dest)}catch(e){}
-  $("#albGo").disabled=true;$("#albMsg").textContent="開始しています…";
+  $("#albGo").disabled=true;$("#albMsg").classList.remove("err");$("#albMsg").textContent="開始しています…";
   try{
     await post("/api/album/start",{q:query,asset_ids:ids,dest,name,mode:document.querySelector("input[name=albMode]:checked").value,
       opts:{old:$("#oOld").checked,loose:$("#oLoose").checked,nonlive:$("#oNonlive").checked,ai:$("#oAi").checked}});
     albPoll();
-  }catch(e){$("#albMsg").textContent=e.message;$("#albGo").disabled=false}
+  }catch(e){albErr(e.message);$("#albGo").disabled=false}
 };
 $("#albCancel").onclick=()=>post("/api/album/cancel",{});
 // ---- 場所を付ける

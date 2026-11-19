@@ -32,11 +32,21 @@ def _inside(child: Path, parent: Path) -> bool:
         return False
 
 
+def normalize_dest(dest: str) -> str:
+    """入力の揺れを直す: 円記号（¥）→ \、全角の「：」→ 「:」、ドライブ文字のあとの「:」の抜け（ドライブ文字だけで「:」が無い入力を補う）。"""
+    d = (dest or "").strip().strip('"').strip("\u201c\u201d")
+    d = d.replace("\u00a5", "\\").replace("\uffe5", "\\").replace("\uff1a", ":").replace("\uff3c", "\\")
+    m = re.match(r"^([A-Za-z])[\\/]", d)                          # 「C\アルバム」「C/アルバム」
+    if m:
+        d = m.group(1) + ":" + d[1:]
+    return d
+
+
 def check_dest(cfg, dest: str, name: str) -> Path:
     """書き出し先フォルダ（dest の下に name のフォルダを作る）を検証して返す（作らない）。"""
     if not dest or not dest.strip():
         raise ValueError("書き出し先のフォルダを入れてください（例: D:\\アルバム）")
-    d = Path(dest.strip().strip('"'))
+    d = Path(normalize_dest(dest))
     if not d.is_absolute():
         raise ValueError("書き出し先は、ドライブ名から始まる完全な場所で入れてください（例: D:\\アルバム）")
     for s in cfg.scans:
